@@ -1,0 +1,2 @@
+import VerifyForm from '@/components/VerifyForm';
+export default async function VerifyPage({params}){const {id}=await params;return <div className="narrow"><div className="eyebrow">COMPROVANTE DE INCLUSÃO</div><h1>Confira seu registro</h1><p className="muted">A conferência é liberada após a lacração pela comissão. Ela verifica se o hash do recibo consta no manifesto assinado, sem revelar a escolha.</p><VerifyForm electionId={id}/></div>}

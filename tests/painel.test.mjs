@@ -1,0 +1,46 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {generateKeyPairSync,randomBytes} from 'node:crypto';
+import {publicDashboard as rawPublicDashboard,publicResultsCsv} from '../lib/public-dashboard.js';
+import {sealKeyFingerprint} from '../lib/trust-anchors.js';
+import {committeeRosterFingerprint} from '../lib/committee.js';
+import {assembleManifest,signManifest} from '../lib/audit.js';
+import {encryptChoice,decryptChoice,deriveElectionKey,sha256} from '../lib/crypto.js';
+import {createCommitteeRoster,createCommitteeApproval,createCommitteeCertificate} from '../lib/committee.js';
+process.env.BALLOT_ENCRYPTION_KEY ||= randomBytes(32).toString('hex');
+const id='12d7af1d-3c29-4815-a6a1-b66439433481',a='a5fd186c-fcb3-4bd9-8e89-b54f376db011',b='bce5f91c-45e2-45d6-8009-f7057d4ec019';
+const election={id,title:'Grêmio estudantil',organization_name:'Escola fictícia',starts_at:'2026-09-12T11:00:00Z',ends_at:'2026-09-12T13:00:00Z'};
+const key=()=>{const {privateKey,publicKey}=generateKeyPairSync('ed25519');return {priv:privateKey.export({format:'pem',type:'pkcs8'}).toString(),pub:publicKey.export({format:'pem',type:'spki'}).toString()}};
+const seal=key(),auditors=[key(),key(),key()];
+const roster=createCommitteeRoster(id,2,auditors.map((k,i)=>({id:`fiscal${i+1}`,name:`Fiscal ${i+1}`,publicKeyPem:k.pub})));
+const trustedAnchor={sealKeyFingerprint:sealKeyFingerprint(seal.pub),rosterFingerprint:committeeRosterFingerprint(roster)};
+const publicDashboard = params=>rawPublicDashboard({...params,trustedAnchor});
+function fixture(opts={}){
+ const encryptedBallots=[a,a,b].map(x=>encryptChoice(id,x));
+ const m=assembleManifest({election,options:[{id:a,label:'Chapa 1',position:1,kind:'candidate'},{id:b,label:'Chapa 2',position:2,kind:'candidate'}],encryptedBallots,receiptHashes:[1,2,3].map(x=>sha256('rec-'+x)),issued:5,used:3,decrypt:decryptChoice,createdAt:'2026-09-12T13:05:00Z'});
+ if(opts.mutate)opts.mutate(m);
+ const signed=signManifest(m,seal.priv);
+ const snapshot={manifest_text:signed.manifestText,signature_base64url:signed.signature,public_key_pem:signed.publicKeyPem};
+ const bundle={schema:'votalivre-commission-bundle-v1',attestation:{manifestText:signed.manifestText,signature:signed.signature,publicKeyPem:signed.publicKeyPem},encryptedBallots,electionKeyHex:deriveElectionKey(id).toString('hex')};
+ const approvals=[0,1].map(i=>createCommitteeApproval({bundle,trustedSealKeyPem:seal.pub,roster,auditorId:`fiscal${i+1}`,privateKeyPem:auditors[i].priv}));
+ const cert=createCommitteeCertificate(bundle.attestation,roster,approvals);
+ return {snapshot,cert:{certificate_text:JSON.stringify(cert),published_at:'2026-09-12T13:15:00Z'}};
+}
+const past='2026-09-12T14:00:00Z';
+test('Não divulga votos antes da abertura',()=>{const f=fixture();const r=publicDashboard({election,...{snapshot:f.snapshot,certificate:f.cert},now:'2026-09-12T10:00:00Z'});assert.equal(r.status,'scheduled');assert.equal(r.results,null);assert.equal(JSON.stringify(r).includes('Chapa 1'),false)});
+test('Não divulga contagem durante a votação mesmo se houver documento',()=>{const f=fixture();const r=publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:'2026-09-12T12:00:00Z'});assert.equal(r.status,'voting');assert.equal(JSON.stringify(r).includes('options'),false)});
+test('Antes da lacração não divulga contagem',()=>{const r=publicDashboard({election,now:past});assert.equal(r.status,'awaiting_seal');assert.equal(r.results,null)});
+test('Após lacração mas sem comissão não divulga',()=>{const f=fixture();const r=publicDashboard({election,snapshot:f.snapshot,now:past});assert.equal(r.status,'awaiting_committee');assert.equal(JSON.stringify(r).includes('Chapa 1'),false)});
+test('Após endossos publica contagem e percentuais consistentes',()=>{const f=fixture();const r=publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past});assert.equal(r.status,'published');assert.deepEqual(r.options.map(x=>x.votes),[2,1]);assert.equal(r.totals.valid,3);assert.equal(r.totals.used,3);assert.equal(r.options[0].percentage,66.67);assert.equal(r.approval.approved,2);assert.match(r.manifestSha256,/^[a-f0-9]{64}$/)});
+test('Manifesto e certificado divergentes são rejeitados',()=>{const f=fixture(),altered=structuredClone(f.cert);const c=JSON.parse(altered.certificate_text);c.attestation.manifestText+=' ';altered.certificate_text=JSON.stringify(c);assert.throws(()=>publicDashboard({election,snapshot:f.snapshot,certificate:altered,now:past}),/não corresponde/)});
+test('Não aceita assinatura do manifesto adulterada',()=>{const f=fixture();f.snapshot.manifest_text+=' ';assert.throws(()=>publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past}),/Assinatura de lacração inválida/)});
+test('Não aceita a eleição errada',()=>{const f=fixture();assert.throws(()=>publicDashboard({election:{...election,id:'accdd366-80cc-4d55-80aa-8a4c6219eb12'},snapshot:f.snapshot,certificate:f.cert,now:past}),/Eleição divergente/)});
+test('Auditores recusam manifesto cuja soma de opções foi adulterada antes dos endossos',()=>{assert.throws(()=>fixture({mutate:m=>m.options[0].votes+=2}),/Contagem divergente/)});
+test('CSV exige apuração publicada',()=>{assert.throws(()=>publicResultsCsv({status:'voting'}),/não autorizada/)});
+test('CSV protege contra injeção de fórmulas e contém hash',()=>{const f=fixture();const base=publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past});base.options[0].label='=2+2';const csv=publicResultsCsv(base);assert.ok(csv.startsWith('\uFEFF'));assert.match(csv,/"'=2\+2"/);assert.match(csv,/SHA-256 do manifesto/)});
+test('A projeção pública não contém tokens, PINs, escolhas criptografadas, IPs ou dados pessoais',()=>{const f=fixture();const r=publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past});const t=JSON.stringify(r);for(const secret of ['token_hash','pin_hash','encrypted_choice','receiptHashes','ballotHashes','cpf','ip_address','voter_id'])assert.ok(!t.includes(secret),secret)});
+
+test('Bloqueia resultado se a comissão ainda não publicou âncoras externas',()=>{const f=fixture();const r=rawPublicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past,trustedAnchor:null});assert.equal(r.status,'awaiting_trust');assert.equal(r.results,null);assert.ok(!JSON.stringify(r).includes('Chapa 1'))});
+test('Rejeita a chave da lacração trocada contra o pin externo',()=>{const f=fixture();assert.throws(()=>rawPublicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past,trustedAnchor:{...trustedAnchor,sealKeyFingerprint:'0'.repeat(64)}}),/lacração difere/)});
+test('Rejeita lista de comissão trocada mesmo com assinatura válida',()=>{const f=fixture();assert.throws(()=>rawPublicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past,trustedAnchor:{...trustedAnchor,rosterFingerprint:'0'.repeat(64)}}),/Comissão difere/)});
+test('Publicação inclui impressões digitais públicas pinadas',()=>{const f=fixture();const x=publicDashboard({election,snapshot:f.snapshot,certificate:f.cert,now:past});assert.deepEqual(x.trustAnchors,trustedAnchor)});

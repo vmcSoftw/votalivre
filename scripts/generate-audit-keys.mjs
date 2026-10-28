@@ -1,0 +1,10 @@
+import {generateKeyPairSync,createHash} from 'node:crypto';
+import {writeFileSync,existsSync} from 'node:fs';
+const [privatePath,publicPath]=process.argv.slice(2);
+if(!privatePath||!publicPath)throw Error('Uso: npm run audit:keys -- ./comissao-private.pem ./comissao-public.pem');
+if(existsSync(privatePath)||existsSync(publicPath))throw Error('Arquivo já existe. Não substituir chaves de uma eleição.');
+const {privateKey,publicKey}=generateKeyPairSync('ed25519');
+writeFileSync(privatePath,privateKey.export({format:'pem',type:'pkcs8'}),{flag:'wx',mode:0o600});
+writeFileSync(publicPath,publicKey.export({format:'pem',type:'spki'}),{flag:'wx',mode:0o644});
+const fingerprint=createHash('sha256').update(publicKey.export({type:'spki',format:'der'})).digest('hex');
+process.stdout.write(`Impressão SHA-256 da chave pública (registre ANTES do pleito): ${fingerprint}\nChaves criadas: privada=${privatePath} (GUARDAR SEGURA), pública=${publicPath} (distribuir aos auditores)\n`);

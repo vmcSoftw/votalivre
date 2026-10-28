@@ -1,0 +1,41 @@
+{
+  "name": "votalivre-secure",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs",
+    "bootstrap": "node scripts/bootstrap-admin.mjs",
+    "admin:add": "node scripts/add-manager.mjs",
+    "keys": "node scripts/generate-keys.mjs",
+    "audit:keys": "node scripts/generate-audit-keys.mjs",
+    "audit:seal": "node scripts/audit-seal.mjs",
+    "audit:export": "node scripts/audit-export.mjs",
+    "audit:verify": "node scripts/audit-verify.mjs",
+    "election:preflight": "node scripts/election-preflight.mjs",
+    "auth:prune": "node scripts/prune-auth-attempts.mjs",
+    "test:db": "node scripts/homologacao-postgresql.mjs",
+    "test:all": "npm test && npm run test:db",
+    "committee:keys": "node scripts/committee-generate-key.mjs",
+    "committee:roster": "node scripts/committee-create-roster.mjs",
+    "committee:approve": "node scripts/committee-approve.mjs",
+    "committee:certificate": "node scripts/committee-build-certificate.mjs",
+    "committee:verify": "node scripts/committee-verify.mjs",
+    "committee:publish": "node scripts/committee-publish.mjs",
+    "trust:pin": "node scripts/anchor-election.mjs",
+    "preflight:production": "node scripts/production-preflight.mjs",
+    "audit:publication": "node scripts/verify-publication.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.28",
+    "postgres": "3.4.5",
+    "react": "19.0.9",
+    "react-dom": "19.0.9"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

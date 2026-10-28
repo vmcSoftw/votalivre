@@ -1,0 +1,19 @@
+{
+  "project": "votalivre-homologacao-2026",
+  "projectId": "fragrant-breeze-92535958",
+  "date": "2026-10-28",
+  "scope": "PostgreSQL isolated core-schema vote-consumption race test; not full HTTP or Next.js integration",
+  "tests": {
+    "parallelRequestsSameFictionalToken": 12,
+    "successfulClaims": 1,
+    "rejectedDuplicateClaims": 11,
+    "databaseCountAfter": {"consumedCredentials":1,"ballots":1,"receipts":1}
+  },
+  "result": "passed",
+  "limitations": [
+    "Only core tables copied from production schema were created; full schema deployment was not verified",
+    "SQL concurrency test used a fictitious encrypted_choice placeholder and not a real route call",
+    "No browser, MFA, network, device, or production intrusion tests were executed",
+    "No real election or personal data were used"
+  ]
+}

@@ -1,0 +1,12 @@
+import {generateKeyPairSync,createHash} from 'node:crypto';
+import {writeFileSync,existsSync,mkdirSync} from 'node:fs';
+import {resolve,join} from 'node:path';
+const [id,folder]=process.argv.slice(2);
+if(!/^[a-z0-9][a-z0-9_-]{1,31}$/.test(id||'')||!folder)throw Error('Uso: node scripts/committee-generate-key.mjs <id-auditor> <pasta-privada>');
+const dir=resolve(folder);mkdirSync(dir,{recursive:true,mode:0o700});
+const privatePath=join(dir,`${id}.private.pem`),publicPath=join(dir,`${id}.public.pem`);
+if(existsSync(privatePath)||existsSync(publicPath))throw Error('As chaves já existem. Não substituir.');
+const kp=generateKeyPairSync('ed25519');
+writeFileSync(privatePath,kp.privateKey.export({type:'pkcs8',format:'pem'}),{flag:'wx',mode:0o600});
+writeFileSync(publicPath,kp.publicKey.export({type:'spki',format:'pem'}),{flag:'wx',mode:0o644});
+process.stdout.write(`Chave pública: ${publicPath}\nSHA-256 da chave pública: ${createHash('sha256').update(kp.publicKey.export({type:'spki',format:'der'})).digest('hex')}\nChave privada: ${privatePath} (não enviar a ninguém)\n`);

@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.pem
+*.p8
+*.key
+*.CONFIDENCIAL.json
+*.private.json
+commission-keys/
+.DS_Store
+
+.vercel
+.env*
