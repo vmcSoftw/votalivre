@@ -9,6 +9,3 @@ node_modules/
 *.private.json
 commission-keys/
 .DS_Store
-
-.vercel
-.env*

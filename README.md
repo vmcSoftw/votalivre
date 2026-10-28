@@ -39,3 +39,7 @@ A URL local é `http://localhost:3000`. O `npm install` não foi concluído nest
 ## Restrições de uso
 
 Não há criptografia de ponta a ponta dos votos, proteção comprovada contra administrador privilegiado, bloqueio absoluto de screenshots ou certificação externa de segurança. **Não usar para eleições vinculantes até completar testes integrados e avaliação independente.**
+
+## Cadastro no login (RC2)
+
+A tela `/admin/login` possui **Criar conta com convite**, levando à página `/admin/cadastro`. Cada convite permite criar uma nova organização com gestor proprietário e exige confirmação do MFA. Para bancos antigos, aplique `sql/migrate_1_0_signup.sql`; para bancos novos, `sql/schema.sql`. Gere convites via `node --env-file=.env.local scripts/create-registration-invite.mjs`. **Detalhes:** `docs/CADASTRO-ADMIN-v1.0-RC2.md`. Não é cadastro público irrestrito.

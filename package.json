@@ -1,6 +1,6 @@
 {
   "name": "votalivre-secure",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,7 +27,8 @@
     "committee:publish": "node scripts/committee-publish.mjs",
     "trust:pin": "node scripts/anchor-election.mjs",
     "preflight:production": "node scripts/production-preflight.mjs",
-    "audit:publication": "node scripts/verify-publication.mjs"
+    "audit:publication": "node scripts/verify-publication.mjs",
+    "registration:invite": "node scripts/create-registration-invite.mjs"
   },
   "dependencies": {
     "next": "15.5.28",

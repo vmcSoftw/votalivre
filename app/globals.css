@@ -43,3 +43,10 @@ footer{padding:31px max(24px,calc((100vw - 1160px)/2));text-align:left;font-size
  .pv-hero{background:#12233c!important;color:white!important;print-color-adjust:exact;-webkit-print-color-adjust:exact;padding:19px 23px!important;border-radius:12px!important;min-height:100px!important}
  .pv-hero h1{font-size:23pt!important}.pv-metrics{grid-template-columns:repeat(4,1fr)!important;gap:8px!important;margin:10px 0!important}.pv-stat,.pv-card{border:1px solid #aaa!important;box-shadow:none!important;padding:13px!important;break-inside:avoid}.pv-stat strong{font-size:20pt!important}.pv-content-grid{grid-template-columns:1.65fr 1fr!important;gap:9px!important}.pv-side{grid-template-columns:1fr!important;gap:8px!important}.pv-side .pv-card:last-child{grid-column:auto!important}.pv-choice{padding:9px 0!important}.pv-track{height:9px!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.pv-breakdown{gap:5px!important}.pv-breakdown div{padding:7px!important}.pv-card h2{font-size:13pt!important}.pv-warning{font-size:8pt!important;padding:9px!important;break-inside:avoid}.pv-footer{font-size:7pt!important;padding:9px 0!important}
 }
+
+/* Cadastro de organizações e MFA - v1.0 RC2 */
+.auth-register-footer{margin-top:25px;border-top:1px solid var(--border);padding-top:19px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;font-size:.9rem}
+.auth-register-footer .btn{width:auto}
+.key-display{letter-spacing:.09em;word-break:break-all;font-size:1.08rem;user-select:all}
+.success-note{background:#ebfaf3;color:#115a3e;padding:15px;border:1px solid #b6e7cf;border-radius:12px;margin-bottom:16px}
+@media(max-width:540px){.auth-register-footer{align-items:stretch;flex-direction:column}.auth-register-footer .btn{width:100%;text-align:center}}
